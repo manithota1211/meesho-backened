@@ -3,6 +3,7 @@ const mysql = require('mysql2');
 const cors = require('cors');
 const bodyParser = require("body-parser");
 const path = require("path");
+const bcrypt = require('bcryptjs');
 
 const app = express();
 const PORT = 3000;
@@ -17,8 +18,10 @@ app.use((req, res, next) => {
   next();
 });
 
+// Serve frontend
 app.use(express.static(path.join(__dirname, "../frontend")));
 
+// MySQL connection
 const db = mysql.createConnection({
   host: 'database-1.cv66cws063vo.ap-northeast-1.rds.amazonaws.com',
   user: 'admin',
@@ -29,30 +32,27 @@ const db = mysql.createConnection({
 db.connect((err) => {
   if (err) {
     console.error('❌ DB connection failed:', err);
-    return;
+    process.exit(1);
   }
   console.log('✅ Connected to MySQL database');
 });
 
-app.get('/health', (req, res) => {
-  res.status(200).send('OK');
-});
-
+// ===================== HEALTH CHECK =====================
+app.get('/health', (req, res) => res.status(200).send('OK'));
 app.get('/ready', (req, res) => {
   db.ping((err) => {
-    if (err) {
-      return res.status(500).send('DB error');
-    }
+    if (err) return res.status(500).send('DB error');
     res.status(200).send('READY');
   });
 });
 
+// ===================== HOME =====================
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/signup.html"));
 });
 
 // ===================== SIGNUP =====================
-app.post('/signup', (req, res) => {
+app.post('/signup', async (req, res) => {
   const { fullname, email, password, confirmPassword } = req.body;
 
   if (!fullname || !email || !password || !confirmPassword) {
@@ -63,32 +63,40 @@ app.post('/signup', (req, res) => {
     return res.status(400).json({ error: 'Passwords do not match' });
   }
 
-  const sql = 'INSERT INTO signup (fullname, email, password) VALUES (?, ?, ?)';
-  db.query(sql, [fullname, email, password], (err, result) => {
-    if (err) {
-      console.error("Signup DB error:", err);
-      return res.status(500).json({ error: err.sqlMessage || "Database error" });
-    }
+  try {
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    res.status(200).json({ message: 'Signup successful' });
-  });
+    const sql = 'INSERT INTO signup (fullname, email, password) VALUES (?, ?, ?)';
+    db.query(sql, [fullname, email, hashedPassword], (err, result) => {
+      if (err) {
+        console.error("Signup DB error:", err);
+        return res.status(500).json({ error: err.sqlMessage || "Database error" });
+      }
+      res.status(200).json({ message: 'Signup successful' });
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 // ===================== LOGIN =====================
 app.post('/login', (req, res) => {
   const { email, password } = req.body;
 
-  const sql = 'SELECT * FROM signup WHERE email = ? AND password = ?';
-  db.query(sql, [email, password], (err, results) => {
-    if (err) {
-      return res.status(500).json({ error: 'Database error' });
-    }
+  if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
 
-    if (results.length > 0) {
-      res.status(200).json({ message: 'Login successful', user: results[0] });
-    } else {
-      res.status(401).json({ error: 'Invalid email or password' });
-    }
+  const sql = 'SELECT * FROM signup WHERE email = ?';
+  db.query(sql, [email], async (err, results) => {
+    if (err) return res.status(500).json({ error: 'Database error' });
+
+    if (results.length === 0) return res.status(401).json({ error: 'Invalid email or password' });
+
+    const user = results[0];
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) return res.status(401).json({ error: 'Invalid email or password' });
+
+    res.status(200).json({ message: 'Login successful', user: { id: user.id, fullname: user.fullname, email: user.email } });
   });
 });
 
@@ -96,21 +104,17 @@ app.post('/login', (req, res) => {
 app.post('/contact', (req, res) => {
   const { name, email, message } = req.body;
 
-  if (!name || !email || !message) {
-    return res.status(400).json({ error: 'All fields are required' });
-  }
+  if (!name || !email || !message) return res.status(400).json({ error: 'All fields are required' });
 
   const sql = 'INSERT INTO contact (name, email, message) VALUES (?, ?, ?)';
   db.query(sql, [name, email, message], (err, result) => {
-    if (err) {
-      return res.status(500).json({ error: 'Database error' });
-    }
+    if (err) return res.status(500).json({ error: 'Database error' });
 
     res.status(200).json({ message: 'Message received successfully!' });
   });
 });
 
+// ===================== START SERVER =====================
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running at http://0.0.0.0:${PORT}`);
 });
-
