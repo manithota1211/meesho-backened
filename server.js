@@ -1,4 +1,4 @@
-const express = require('express');
+const express = require('express');const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
 const bodyParser = require("body-parser");
@@ -53,9 +53,9 @@ app.get("/", (req, res) => {
 
 // ===================== SIGNUP =====================
 app.post('/signup', async (req, res) => {
-  const { fullname, email, mobile, password, confirmPassword } = req.body;
+  const { fullname, mobile, password, confirmPassword } = req.body;
 
-  if (!fullname || !email || !mobile || !password || !confirmPassword) {
+  if (!fullname || !mobile || !password || !confirmPassword) {
     return res.status(400).json({ error: 'All fields are required' });
   }
 
@@ -66,8 +66,8 @@ app.post('/signup', async (req, res) => {
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const sql = 'INSERT INTO signup (fullname, email, mobile, password) VALUES (?, ?, ?, ?)';
-    db.query(sql, [fullname, email, mobile, hashedPassword], (err, result) => {
+    const sql = 'INSERT INTO signup (fullname, mobile, password) VALUES (?, ?, ?)';
+    db.query(sql, [fullname, mobile, hashedPassword], (err, result) => {
       if (err) {
         console.error("Signup DB error:", err);
         return res.status(500).json({ error: err.sqlMessage || "Database error" });
@@ -81,23 +81,23 @@ app.post('/signup', async (req, res) => {
 
 // ===================== LOGIN =====================
 app.post('/login', (req, res) => {
-  const { email, password } = req.body;
+  const { mobile, password } = req.body;
 
-  if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
+  if (!mobile || !password) return res.status(400).json({ error: 'Mobile number and password required' });
 
-  const sql = 'SELECT * FROM signup WHERE email = ?';
-  db.query(sql, [email], async (err, results) => {
+  const sql = 'SELECT * FROM signup WHERE mobile = ?';
+  db.query(sql, [mobile], async (err, results) => {
     if (err) return res.status(500).json({ error: 'Database error' });
 
-    if (results.length === 0) return res.status(401).json({ error: 'Invalid email or password' });
+    if (results.length === 0) return res.status(401).json({ error: 'Invalid mobile number or password' });
 
     const user = results[0];
     const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(401).json({ error: 'Invalid email or password' });
+    if (!match) return res.status(401).json({ error: 'Invalid mobile number or password' });
 
     res.status(200).json({ 
       message: 'Login successful', 
-      user: { id: user.id, fullname: user.fullname, email: user.email, mobile: user.mobile } 
+      user: { id: user.id, fullname: user.fullname, mobile: user.mobile } 
     });
   });
 });
@@ -120,3 +120,5 @@ app.post('/contact', (req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running at http://0.0.0.0:${PORT}`);
 });
+
+
