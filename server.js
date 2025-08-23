@@ -29,7 +29,7 @@ const db = mysql.createConnection({
   database: 'meeshow'
 });
 
-db.connect((err) => {
+db.connect(err => {
   if (err) {
     console.error('❌ DB connection failed:', err);
     process.exit(1);
@@ -40,7 +40,7 @@ db.connect((err) => {
 // ===================== HEALTH CHECK =====================
 app.get('/health', (req, res) => res.status(200).send('OK'));
 app.get('/ready', (req, res) => {
-  db.ping((err) => {
+  db.ping(err => {
     if (err) return res.status(500).send('DB error');
     res.status(200).send('READY');
   });
@@ -53,9 +53,9 @@ app.get("/", (req, res) => {
 
 // ===================== SIGNUP =====================
 app.post('/signup', async (req, res) => {
-  const { fullname, email, password, confirmPassword } = req.body;
+  const { fullname, email, mobile, password, confirmPassword } = req.body;
 
-  if (!fullname || !email || !password || !confirmPassword) {
+  if (!fullname || !email || !mobile || !password || !confirmPassword) {
     return res.status(400).json({ error: 'All fields are required' });
   }
 
@@ -64,11 +64,10 @@ app.post('/signup', async (req, res) => {
   }
 
   try {
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const sql = 'INSERT INTO signup (fullname, email, password) VALUES (?, ?, ?)';
-    db.query(sql, [fullname, email, hashedPassword], (err, result) => {
+    const sql = 'INSERT INTO signup (fullname, email, mobile, password) VALUES (?, ?, ?, ?)';
+    db.query(sql, [fullname, email, mobile, hashedPassword], (err, result) => {
       if (err) {
         console.error("Signup DB error:", err);
         return res.status(500).json({ error: err.sqlMessage || "Database error" });
@@ -96,7 +95,10 @@ app.post('/login', (req, res) => {
     const match = await bcrypt.compare(password, user.password);
     if (!match) return res.status(401).json({ error: 'Invalid email or password' });
 
-    res.status(200).json({ message: 'Login successful', user: { id: user.id, fullname: user.fullname, email: user.email } });
+    res.status(200).json({ 
+      message: 'Login successful', 
+      user: { id: user.id, fullname: user.fullname, email: user.email, mobile: user.mobile } 
+    });
   });
 });
 
