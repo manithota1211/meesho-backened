@@ -1,23 +1,4 @@
 {
-  "name": "meesho-clone",
-  "version": "1.0.0",
-  "main": "server.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/swarupa94909/Meesho-Clone.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/swarupa94909/Meesho-Clone/issues"
-  },
-  "homepage": "https://github.com/swarupa94909/Meesho-Clone#readme",
-  "description": "",
   "dependencies": {
     "body-parser": "^2.2.0",
     "bcrypt": "^6.0.0",
