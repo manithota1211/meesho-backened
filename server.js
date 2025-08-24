@@ -23,10 +23,10 @@ app.use(express.static(path.join(__dirname, "../frontend")));
 
 // MySQL connection
 const db = mysql.createConnection({
-  host: 'database-1.cv66cws063vo.ap-northeast-1.rds.amazonaws.com',
-  user: 'admin',
-  password: 'manikanta1234',
-  database: 'meeshow'
+  host: 'database-1.cdicimkg0yfd.us-east-2.rds.amazonaws.com',
+  user: 'mani',
+  password: 'mani1234',
+  database: 'srinu'
 });
 
 db.connect(err => {
@@ -120,6 +120,7 @@ app.post('/contact', (req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running at http://0.0.0.0:${PORT}`);
 });
+
 
 
 
